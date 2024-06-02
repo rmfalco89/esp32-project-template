@@ -5,8 +5,6 @@
 #include <map>
 #include <ESPAsyncWebServer.h>
 
-void otaSetup(const char *, const char *, const char *, const char *);
-
 class ESPGithubOtaUpdate
 {
 private:

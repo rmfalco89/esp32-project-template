@@ -7,6 +7,8 @@
 #include <HTTPUpdate.h>
 #include <WiFi.h>
 #elif defined(ESP8266)
+#include "esp8266_ota_update.h"
+
 #include <ESP8266HTTPClient.h>
 #include <ESP8266httpUpdate.h>
 #include <ESP8266WiFi.h>
@@ -45,9 +47,26 @@ WiFiClientSecure getSecureClient()
     return secureClient;
 }
 
-void otaSetup(const char *version, const char *binaryFileName, const char *repo, const char *token)
+void printMemoryStatuss()
 {
-    // This function can be used for initial setup if needed.
+    Serial.print("Free heap: ");
+    Serial.println(ESP.getFreeHeap());
+    Serial.print("Heap fragmentation: ");
+    Serial.println(ESP.getHeapFragmentation());
+    Serial.print("Max free block size: ");
+    Serial.println(ESP.getMaxFreeBlockSize());
+}
+
+void printFlashInfo()
+{
+    Serial.print("Flash Real Size: ");
+    Serial.println(ESP.getFlashChipRealSize());
+    Serial.print("Flash Chip Size: ");
+    Serial.println(ESP.getFlashChipSize());
+    Serial.print("Flash Chip Speed: ");
+    Serial.println(ESP.getFlashChipSpeed());
+    Serial.print("Flash Mode: ");
+    Serial.println(ESP.getFlashChipMode());
 }
 
 void ESPGithubOtaUpdate::getLatestReleaseInfo(char *&version, char *&updateURL)
@@ -67,7 +86,6 @@ void ESPGithubOtaUpdate::getLatestReleaseInfo(char *&version, char *&updateURL)
     {
         if (strlen(authToken) == 0)
             Serial.println(F("Got 401 Unauthorized, and github token is empty. Check your configuration"));
-
         else
             Serial.println(F("Got 401 Unauthorized. Check if your github token is valid and not expired."));
     }
@@ -131,6 +149,10 @@ bool ESPGithubOtaUpdate::isNewerVersionAvailable(char *&latestVersion, char *&up
 
 ESPGithubOtaUpdate::ESPGithubOtaUpdate(const char *v, const char *b, const char *r, const char *a) : currentVersion(v), binaryFileName(b), releaseRepo(r), authToken(a)
 {
+#ifdef ESP8266
+    setupEsp8266OtaUpdate();
+#endif
+
     isInited = true;
 }
 
@@ -165,6 +187,9 @@ void ESPGithubOtaUpdate::upgradeSoftware(const char *updateURL)
         return;
     }
 
+    // Print memory status before starting the update
+    printMemoryStatuss();
+
     WiFiClientSecure secureClient = getSecureClient();
 
 #ifdef ESP32
@@ -191,6 +216,9 @@ void ESPGithubOtaUpdate::upgradeSoftware(const char *updateURL)
 
 void ESPGithubOtaUpdate::checkForSoftwareUpdate()
 {
+#ifdef ESP8266
+    handleEsp8266OtaUpdate();
+#endif
     if (millis() - lastCheckForUpdateMillis > checkForSoftwareUpdateMillis)
     {
         lastCheckForUpdateMillis = millis();
@@ -204,7 +232,13 @@ void ESPGithubOtaUpdate::registerFirmwareUploadRoutes(AsyncWebServer *webServer,
     if (!webServer)
         return;
 
-    webServer->on("/uploadFirmware", HTTP_GET, [webServer](AsyncWebServerRequest *request)
+#ifdef ESP8266
+    // For some weird bug, can't use AsyncWebServerRequest with Esp8266 for upload.
+    webServer->on("/uploadFirmware", HTTP_GET, [](AsyncWebServerRequest *request)
+                  { request->redirect("http://" + WiFi.localIP().toString() + ":8888/"); });
+
+#elif defined(ESP32)
+    webServer->on("/uploadFirmware", HTTP_GET, [](AsyncWebServerRequest *request)
                   { request->send(200, "text/html", "<form method='POST' action='/firmwareUploadSave' enctype='multipart/form-data'>"
                                                     "<input type='file' name='firmware'>"
                                                     "<input type='submit' value='Upload Firmware'>"
@@ -215,48 +249,63 @@ void ESPGithubOtaUpdate::registerFirmwareUploadRoutes(AsyncWebServer *webServer,
         routeDescriptions->insert(std::make_pair("/uploadFirmware", "Upload firmware directly from the browser"));
     }
 
-    webServer->on("/firmwareUploadSave", HTTP_POST, [webServer](AsyncWebServerRequest *request)
-                  {
-                      // Placeholder for final response to the client, actual response will be sent in the upload handler
-                  },
-                  [webServer](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final)
+    webServer->on("/firmwareUploadSave", HTTP_POST, [](AsyncWebServerRequest *request) {}, // Placeholder for final response to the client, actual response will be sent in the upload handler
+                  [](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final)
                   {
         if (!index)
         {
             Serial.printf("Update Start: %s\n", filename.c_str());
 
-#ifdef ESP32
-            if (!Update.begin(UPDATE_SIZE_UNKNOWN))
-#elif defined(ESP8266)
-            if (!Update.begin(1024 * 1024)) // Must give a size, let's use 1MB
-#endif
-{
+            bool updateStartOk = false;
+
+            updateStartOk = Update.begin(UPDATE_SIZE_UNKNOWN);
+            if (!updateStartOk)
+            {
                 Update.printError(Serial);
-            request->send(500, "text/plain", "Update failed at start");
+                request->send(500, "text/plain", "Update failed at start");
+                delay(2000);
+                return;
+            }
+            else
+            {
+                Serial.println("Update Started");
+                // printMemoryStatus(); // Print memory status after starting the update
+            }
+
+            Serial.println("Debug here 1");
+        }
+
+        Serial.println("Debug here 2");
+
+        // Debugging before writing data
+        Serial.printf("Writing %u bytes at index %u\n", len, index);
+        printMemoryStatuss(); // Print memory status before writing data
+
+        // Write received data to the update
+        if (Update.write(data, len) != len)
+        {
+            Update.printError(Serial);
+            request->send(500, "text/plain", "Update failed during write");
             delay(2000);
             return;
         }
-        }
 
-        if (Update.write(data, len) != len) {
-        Update.printError(Serial);
-        request->send(500, "text/plain", "Update failed during write");
-        delay(2000);
-        return;
-        }
+        yield(); // Yield to keep the system responsive during the long write process
 
-        if (final) {
-        if (Update.end(true))
+        if (final)
         {
-            Serial.printf("Update Success: %uB\n", index + len);
-            request->send(200, "text/plain", "Upload complete, device will restart.");
-            delay(3000); // Short delay to ensure the response is sent before reboot
-            ESP.restart();
-        }
-        else
-        {
-            Update.printError(Serial);
-            request->send(500, "text/plain", "Update failed at end");
-        }
+            if (Update.end(true))
+            {
+                Serial.printf("Update Success: %uB\n", index + len);
+                request->send(200, "text/plain", "Upload complete, device will restart.");
+                delay(3000); // Short delay to ensure the response is sent before reboot
+                ESP.restart();
+            }
+            else
+            {
+                Update.printError(Serial);
+                request->send(500, "text/plain", "Update failed at end");
+            }
         } });
+#endif
 }
