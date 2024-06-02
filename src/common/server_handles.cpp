@@ -95,7 +95,7 @@ void routeSaveConfiguration(AsyncWebServerRequest *request)
 
     currentDeviceConfiguration = newConfig;
     saveDeviceConfigurationToEeprom();
-    setupWifi(false);
+    setupWifi();
     LOG_PRINTLN(F("Configuration accepted. Setting quickRestart to 0 and Rebooting."));
     saveQuickRestartsToEeprom(false);
 

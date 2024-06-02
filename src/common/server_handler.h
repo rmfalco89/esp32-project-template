@@ -3,7 +3,7 @@
 
 #include <ESPAsyncWebServer.h>
 
-void setupServer(bool config_mode);
+void setupServer();
 void loopServer();
 
 // Routes go here

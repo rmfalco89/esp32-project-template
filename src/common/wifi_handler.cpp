@@ -13,11 +13,10 @@
 #include "device_configuration.h"
 
 const char *ssid, *password, *hostname;
-bool configMode_;
 
 uint64_t lastCheckedMillis = 0;
 
-bool connectWiFi(const char *ssid, const char *password, const char *hostname, bool configMode)
+bool connectWiFi(const char *ssid, const char *password, const char *hostname)
 {
     bool connected = false;
     uint8_t numRetries = 5;
@@ -60,8 +59,14 @@ bool connectWiFi(const char *ssid, const char *password, const char *hostname, b
         if (!connected)
         {
             DEBUG_PRINTLN(F("Connection to WiFi unsuccessful. Entering config mode"));
-            saveQuickRestartsToEeprom(true); // use the just restarted logic to enter in config mode
-            ESP.restart();
+            configMode = true;
+            setupWifi();
+            return false;
+            // this is actually very dangerous. Don't uncomment unless you know exactly what you
+            // are doing. And even then, remember that you did it once you hit unwanted behavior.
+            // saveQuickRestartsToEeprom(true); // use the just restarted logic to enter in config mode
+            // ESP.restart(); 
+                              
         }
         DEBUG_PRINTLN("\nConnected to WiFi with IP address " + ipAddress.toString());
     }
@@ -78,12 +83,11 @@ bool connectWiFi(const char *ssid, const char *password, const char *hostname, b
     return true;
 }
 
-void setupWifi(bool configMode)
+void setupWifi()
 {
     LOG_PRINT(F("Setting up WiFi in "));
     LOG_PRINT(configMode ? F("AP") : F("STA"));
     LOG_PRINTLN(F(" mode."));
-    configMode_ = configMode;
     if (configMode)
     {
         ssid = configModeSsid;
@@ -104,7 +108,7 @@ void setupWifi(bool configMode)
     WiFi.mode(WIFI_OFF); // Turn off to reset the Wi-Fi mode
     delay(3000);         // Short delay to allow Wi-Fi hardware to reset
 
-    connectWiFi(ssid, password, hostname, configMode);
+    connectWiFi(ssid, password, hostname);
 }
 
 void loopWiFi()
@@ -113,7 +117,7 @@ void loopWiFi()
     MDNS.update();
 #endif
 
-    if (configMode_)
+    if (configMode)
         return;
 
     // Make sure WiFi is connected, reconnect if necessary
@@ -127,7 +131,7 @@ void loopWiFi()
         if (WiFi.status() != WL_CONNECTED || !client.connect(host, port))
         {
             LOG_PRINTLN("Wifi disconnected");
-            setupWifi(configMode_);
+            setupWifi();
         }
     }
 }

@@ -12,7 +12,7 @@
 AsyncWebServer *webServer;
 std::map<String, String> routeDescriptions;
 
-void setupServer(bool config_mode)
+void setupServer()
 {
     webServer = new AsyncWebServer(80);
 
@@ -41,8 +41,8 @@ void setupServer(bool config_mode)
                   { routeLogsStream(request); });
     routeDescriptions["/logsStream"] = "Get a logs streaming for remote debugging";
 
-    // Add routes here
-    // if (!config_mode)
+    // Add more routes here
+    // if (!configMode)
     // {
     //     webServer->on("/routePath", HTTP_MODE, func);
     // }

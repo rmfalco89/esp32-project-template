@@ -64,10 +64,10 @@ void commonSetup()
     saveQuickRestartsToEeprom(true);
 
     // Wifi setup
-    setupWifi(configMode);
+    setupWifi();
 
     // Server setup
-    setupServer(configMode);
+    setupServer();
 
     // OTA Updater
     updater = new ESPGithubOtaUpdate(SW_VERSION, BINARY_NAME, releaseRepo, currentDeviceConfiguration->githubAuthToken);
@@ -125,14 +125,15 @@ uint8_t commonLoop()
         quickRestartsCount = 0;
     }
     // - check if in config mode but a valid configuration is found.
-    // This covers the case where connection to WiFI was temporarily unsuccessful but the configuration is valid
+    // This covers the case where connection to WiFI was temporarily unsuccessful 
+    // but the configuration is valid so the rest of the code can be executed
     if (configMode && !bootLoopMode && millis() - configModeLastCheckMillis > configModeCheckEveryMillis)
     {
         configModeLastCheckMillis = millis();
         if (readDeviceConfigurationFromEeprom())
         {
             LOG_PRINTLN("Got valid configuration and connected to wifi. Restarting.");
-            delay(200); // to make sure to flush out the response
+            delay(500);
             ESP.restart();
         }
     }
