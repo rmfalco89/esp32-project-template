@@ -47,28 +47,6 @@ WiFiClientSecure getSecureClient()
     return secureClient;
 }
 
-void printMemoryStatuss()
-{
-    Serial.print("Free heap: ");
-    Serial.println(ESP.getFreeHeap());
-    Serial.print("Heap fragmentation: ");
-    Serial.println(ESP.getHeapFragmentation());
-    Serial.print("Max free block size: ");
-    Serial.println(ESP.getMaxFreeBlockSize());
-}
-
-void printFlashInfo()
-{
-    Serial.print("Flash Real Size: ");
-    Serial.println(ESP.getFlashChipRealSize());
-    Serial.print("Flash Chip Size: ");
-    Serial.println(ESP.getFlashChipSize());
-    Serial.print("Flash Chip Speed: ");
-    Serial.println(ESP.getFlashChipSpeed());
-    Serial.print("Flash Mode: ");
-    Serial.println(ESP.getFlashChipMode());
-}
-
 void ESPGithubOtaUpdate::getLatestReleaseInfo(char *&version, char *&updateURL)
 {
     WiFiClientSecure secureClient = getSecureClient();
@@ -187,9 +165,6 @@ void ESPGithubOtaUpdate::upgradeSoftware(const char *updateURL)
         return;
     }
 
-    // Print memory status before starting the update
-    printMemoryStatuss();
-
     WiFiClientSecure secureClient = getSecureClient();
 
 #ifdef ESP32
@@ -279,7 +254,6 @@ void ESPGithubOtaUpdate::registerFirmwareUploadRoutes(AsyncWebServer *webServer,
 
         // Debugging before writing data
         Serial.printf("Writing %u bytes at index %u\n", len, index);
-        printMemoryStatuss(); // Print memory status before writing data
 
         // Write received data to the update
         if (Update.write(data, len) != len)

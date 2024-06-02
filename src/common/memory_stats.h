@@ -30,6 +30,11 @@ struct MemoryStats
         maxFreeBlockSize = maxFreeBlockSize_;
     }
 
+    void addSample(uint32_t sample)
+    {
+        addSample(sample, 0, 0);
+    }
+
     uint32_t getMin() const
     {
         auto begin = usageSamples.begin();

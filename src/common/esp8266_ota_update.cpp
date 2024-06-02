@@ -1,3 +1,5 @@
+#ifdef ESP8266
+
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <Updater.h>
@@ -43,3 +45,5 @@ void setupEsp8266OtaUpdate() {
 void handleEsp8266OtaUpdate() {
     otaServer.handleClient();
 }
+
+#endif
