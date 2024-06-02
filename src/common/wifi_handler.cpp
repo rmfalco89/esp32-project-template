@@ -60,8 +60,7 @@ bool connectWiFi(const char *ssid, const char *password, const char *hostname)
         {
             DEBUG_PRINTLN(F("Connection to WiFi unsuccessful. Entering config mode"));
             configMode = true;
-            setupWifi();
-            return false;
+            return setupWifi();
             // this is actually very dangerous. Don't uncomment unless you know exactly what you
             // are doing. And even then, remember that you did it once you hit unwanted behavior.
             // saveQuickRestartsToEeprom(true); // use the just restarted logic to enter in config mode
@@ -83,7 +82,7 @@ bool connectWiFi(const char *ssid, const char *password, const char *hostname)
     return true;
 }
 
-void setupWifi()
+bool setupWifi()
 {
     LOG_PRINT(F("Setting up WiFi in "));
     LOG_PRINT(configMode ? F("AP") : F("STA"));
@@ -108,7 +107,7 @@ void setupWifi()
     WiFi.mode(WIFI_OFF); // Turn off to reset the Wi-Fi mode
     delay(3000);         // Short delay to allow Wi-Fi hardware to reset
 
-    connectWiFi(ssid, password, hostname);
+    return connectWiFi(ssid, password, hostname);
 }
 
 void loopWiFi()
@@ -130,7 +129,7 @@ void loopWiFi()
 
         if (WiFi.status() != WL_CONNECTED || !client.connect(host, port))
         {
-            LOG_PRINTLN("Wifi disconnected");
+            LOG_PRINTLN("Wifi disconnected. Attemting new wifi setupx");
             setupWifi();
         }
     }

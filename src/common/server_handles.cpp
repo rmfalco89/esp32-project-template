@@ -95,17 +95,22 @@ void routeSaveConfiguration(AsyncWebServerRequest *request)
 
     currentDeviceConfiguration = newConfig;
     saveDeviceConfigurationToEeprom();
-    setupWifi();
-    LOG_PRINTLN(F("Configuration accepted. Setting quickRestart to 0 and Rebooting."));
-    saveQuickRestartsToEeprom(false);
-
-    ESP.restart(); // Note: will not reach this point if connection to Wifi is unsuccessful
+    if (setupWifi())
+    {
+        LOG_PRINTLN(F("Configuration accepted."));
+        // saveQuickRestartsToEeprom(false);
+        // ESP.restart(); // Note: will not reach this point if connection to Wifi is unsuccessful
+    }
+    else
+    {
+        LOG_PRINTLN(F("Unable to connect to WiFI, configuration discarded."));
+    }
 }
 
 void routeLogsStream(AsyncWebServerRequest *request)
 {
     DEBUG_PRINTLN("routeLogsStream");
-String html = R"(<!DOCTYPE html><html><head><script>
+    String html = R"(<!DOCTYPE html><html><head><script>
 var ws = new WebSocket('ws://' + window.location.hostname + ':80/wsLogs');
 ws.onmessage = function(event) {
   var container = document.getElementById('logContainer');

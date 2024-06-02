@@ -64,7 +64,8 @@ void commonSetup()
     saveQuickRestartsToEeprom(true);
 
     // Wifi setup
-    setupWifi();
+    if (!setupWifi())
+        configMode = true;
 
     // Server setup
     setupServer();
@@ -125,16 +126,20 @@ uint8_t commonLoop()
         quickRestartsCount = 0;
     }
     // - check if in config mode but a valid configuration is found.
-    // This covers the case where connection to WiFI was temporarily unsuccessful 
+    // This covers the case where connection to WiFI was temporarily unsuccessful
     // but the configuration is valid so the rest of the code can be executed
     if (configMode && !bootLoopMode && millis() - configModeLastCheckMillis > configModeCheckEveryMillis)
     {
         configModeLastCheckMillis = millis();
         if (readDeviceConfigurationFromEeprom())
         {
-            LOG_PRINTLN("Got valid configuration and connected to wifi. Restarting.");
-            delay(500);
-            ESP.restart();
+            if (setupWifi())
+            {
+                configMode = false;
+                LOG_PRINTLN("Got valid configuration and connected to wifi.");
+                // delay(500);
+                // ESP.restart();
+            }
         }
     }
 
