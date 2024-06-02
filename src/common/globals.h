@@ -31,6 +31,7 @@ void sendToLogsWebsocket(const String &message);
 extern bool configMode;
 extern bool bootLoopMode;
 extern int JUST_RESTARTED_EEPROM_ADDR;
+extern uint8_t minQuickRestartCountToEnterConfigMode;
 
 extern uint8_t quickRestartsCount;
 extern const uint16_t quickRestarMaxDurationMillis;

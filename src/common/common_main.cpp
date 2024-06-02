@@ -30,7 +30,7 @@ void commonSetup()
     esp_task_wdt_add(NULL);                     // Passing NULL adds the current task (loop task for Arduino)
 #elif defined(ESP8266)
     ESP.wdtDisable();
-    ESP.wdtEnable(WDTO_4S);
+    ESP.wdtEnable(WDTO_8S);
 #endif
 
     pinMode(integratedLEDPin, OUTPUT);
@@ -45,7 +45,7 @@ void commonSetup()
     // Check whether it's a quick restart or the device config is not valid
     quickRestartsCount = readQuickRestartsFromEeprom();
     readDeviceConfigurationFromEeprom();
-    if (quickRestartsCount > 1 || !currentDeviceConfiguration)
+    if (quickRestartsCount > minQuickRestartCountToEnterConfigMode || !currentDeviceConfiguration)
     {
         configMode = true;
         if (quickRestartsCount >= bootLoopModeMinCount)

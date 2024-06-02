@@ -12,18 +12,22 @@ struct MemoryStats
     size_t currentSampleIndex = 0;
     bool isBufferFull = false;
     const size_t sampleSize = 60 * 24; // 24h at 60 measurements /h
+    uint8_t heapFragmentation = 0;
+    uint32_t maxFreeBlockSize = 0;
 
     MemoryStats()
     {
         usageSamples.resize(sampleSize, 0);
     }
 
-    void addSample(uint32_t sample)
+    void addSample(uint32_t sample, uint8_t heapFragmentation_, uint32_t maxFreeBlockSize_)
     {
         usageSamples[currentSampleIndex] = sample;
         currentSampleIndex = (currentSampleIndex + 1) % sampleSize;
         if (currentSampleIndex == 0)
             isBufferFull = true;
+        heapFragmentation = heapFragmentation_;
+        maxFreeBlockSize = maxFreeBlockSize_;
     }
 
     uint32_t getMin() const

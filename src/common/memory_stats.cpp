@@ -12,7 +12,9 @@ void updateMemoryStats()
     uint32_t freeHeap = esp_get_free_heap_size();
 #elif defined(ESP8266)
     uint32_t freeHeap = ESP.getFreeHeap();
+    uint8_t heapFragmentation = ESP.getHeapFragmentation();
+    uint32_t maxFreeBlockSize = ESP.getMaxFreeBlockSize();
 #endif
 
-    ramStats.addSample(freeHeap);
+    ramStats.addSample(freeHeap, heapFragmentation, maxFreeBlockSize);
 }

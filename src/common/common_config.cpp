@@ -23,6 +23,7 @@ const int watchdogTimeout_s = 15; // 15s
 const uint8_t bootLoopModeMinCount = 5;
 const uint16_t quickRestarMaxDurationMillis = 20 * 1000;   // 30s
 const uint32_t configModeCheckEveryMillis = 2 * 60 * 1000; // 2m
+uint8_t minQuickRestartCountToEnterConfigMode = 2;
 
 // Wifi
 const char *configModeSsid = "ArduinoNet";
@@ -32,4 +33,4 @@ const uint16_t wifiConnectionMaxMillis = 12 * 1000;             // 12s
 const IPAddress dns(8, 8, 8, 8);                                // Google's DNS
 
 // Ram Stats
-uint64_t ramStatsUpdateIntervalMillis = 60000;
+uint64_t ramStatsUpdateIntervalMillis = 30000;
